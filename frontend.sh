@@ -6,7 +6,7 @@ G="\e[32m"
 Y="\e[33m"
 N="\e[0m"
 
-LOGS_FOLDER="/var/log/expense.logs"
+LOGS_FOLDER="/var/log/expense-logs"
 LOG_FILE=$(echo $0 | cut -d "." -f1 )
 TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
 LOG_FILE_NAME="$LOGS_FOLDER/$LOG_FILE-$TIMESTAMP.log"
@@ -29,58 +29,34 @@ CHECK_ROOT(){
     fi
 }
 
+mkdir -p $LOGS_FOLDER
 echo "Script started executing at: $TIMESTAMP" &>>$LOG_FILE_NAME
 
 CHECK_ROOT
 
-dnf module disable nodejs -y &>>$LOG_FILE_NAME
-VALIDATE $? "Disabling existing default NodeJS"
+dnf install nginx -y  &>>$LOG_FILE_NAME
+VALIDATE $? "Installing Nginx Server"
 
-dnf module enable nodejs:20 -y &>>$LOG_FILE_NAME
-VALIDATE $? "Enabling NodeJS 20"
+systemctl enable nginx &>>$LOG_FILE_NAME
+VALIDATE $? "Enabling Nginx server"
 
-dnf install nodejs -y &>>$LOG_FILE_NAME
-VALIDATE $? "Installing NodeJS"
+systemctl start nginx &>>$LOG_FILE_NAME
+VALIDATE $? "Starting Nginx Server"
 
-id expense &>>$LOG_FILE_NAME
-if [ $? -ne 0 ]
-then
-    useradd expense &>>$LOG_FILE_NAME
-    VALIDATE $? "Adding expense user"
-else
-    echo -e "expense user already exists ... $Y SKIPPING $N"
-fi
+rm -rf /usr/share/nginx/html/* &>>$LOG_FILE_NAME
+VALIDATE $? "Removing existing version of code"
 
-mkdir -p /app &>>$LOG_FILE_NAME
-VALIDATE $? "Creating app directory"
+curl -o /tmp/frontend.zip https://expense-builds.s3.us-east-1.amazonaws.com/expense-frontend-v2.zip &>>$LOG_FILE_NAME
+VALIDATE $? "Downloading Latest code"
 
-curl -o /tmp/backend.zip https://expense-builds.s3.us-east-1.amazonaws.com/expense-backend-v2.zip &>>$LOG_FILE_NAME
-VALIDATE $? "Downloading backend"
+cd /usr/share/nginx/html
+VALIDATE $? "Moving to HTML directory"
 
-cd /app
-rm -rf /app/*
+unzip /tmp/frontend.zip &>>$LOG_FILE_NAME
+VALIDATE $? "unzipping the frontend code"
 
-unzip /tmp/backend.zip &>>$LOG_FILE_NAME
-VALIDATE $? "unzip backend"
+cp /home/ec2-user/expense-shell/expense.conf /etc/nginx/default.d/expense.conf
+VALIDATE $? "Copied expense config"
 
-npm install &>>$LOG_FILE_NAME
-VALIDATE $? "Installing dependencies"
-
-cp /home/ec2-user/expense_shell/backend.service /etc/systemd/system/backend.service
-
-# Prepare MySQL Schema
-
-dnf install mysql -y &>>$LOG_FILE_NAME
-VALIDATE $? "Installing MySQL Client"
-
-mysql -h mysql.saritag.online -uroot -pExpenseApp@1 < /app/schema/backend.sql &>>$LOG_FILE_NAME
-VALIDATE $? "Setting up the transactions schema and tables"
-
-systemctl daemon-reload &>>$LOG_FILE_NAME
-VALIDATE $? "Daemon Reload"
-
-systemctl enable backend &>>$LOG_FILE_NAME
-VALIDATE $? "Enabling backend"
-
-systemctl restart backend &>>$LOG_FILE_NAME
-VALIDATE $? "Starting Backend"
+systemctl restart nginx &>>$LOG_FILE_NAME
+VALIDATE $? "Restarting nginx"
