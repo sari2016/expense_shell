@@ -1,6 +1,6 @@
 #!/bin/bash
 
-USERID=$(id -U)
+USERID=$(id -u)
 R="\e[31m"
 G="\e[32m"
 Y="\e[33m"
@@ -55,3 +55,5 @@ then
     VALIDATE $? "Setting Root Password"
 else
     echo -e "MySQL Root password already setup ... $Y SKIPPING $N"
+    fi
+    
