@@ -30,7 +30,7 @@ fi
     fi
     }
 
-    echo "script started executing at : $TIMESTAMP" &>>$LOG_FINE_NAME
+    echo "script started executing at : $TIMESTAMP" &>>$LOG_FILE_NAME
 
 
 CHECK_ROOT
