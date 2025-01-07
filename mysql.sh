@@ -51,8 +51,8 @@ mysql -h mysql.saritag.online -u root -pExpenseApp@1 -e 'show databases;' &>>$LO
 if [ $? -ne 0 ]
 then
     echo "MySQL Root password not setup" &>>$LOG_FILE_NAME
-    mysql_secure_installation --set-root-pass ExpenseApp@1
+    mysql_secure_installation --set-root-pass ExpenseApp@1 &>>$LOG_FILE_NAME
     VALIDATE $? "Setting Root Password"
 else
-    echo -e "MySQL Root password already setup ... $Y SKIPPING $N "
+    echo -e "MySQL Root password already setup ... $Y SKIPPING $N"
 fi
